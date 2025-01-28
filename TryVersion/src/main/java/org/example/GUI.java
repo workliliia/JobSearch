@@ -6,13 +6,12 @@ import org.jgrapht.graph.DefaultWeightedEdge;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class GUI {
     private JTable jobTable;
@@ -25,7 +24,7 @@ public class GUI {
     private JTextField searchField;
     private JButton distanceButton;
     private JButton sortButton;
-    private DefaultTableModel tableModel;
+    private JobTableModel tableModel;
     private JComboBox<String> searchCriteriaComboBox;
     private JComboBox<String> columnDropdown;
 
@@ -37,9 +36,9 @@ public class GUI {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(800, 600);
 
-        tableModel = new DefaultTableModel(new Object[]{
+        tableModel = new JobTableModel(jobs, new String[]{
                 "Job ID", "Title", "Company", "Skills", "Latitude", "Longitude", "Salary", "Deadline"
-        }, 0);
+        });
         jobTable = new JTable(tableModel);
         scrollPane = new JScrollPane(jobTable);
 
@@ -125,8 +124,6 @@ public class GUI {
             List<JobAdvert> sortedJobs = Sort.sortJobs(jobs, sortColumn);
             updateTableWithJobs(sortedJobs);
         });
-
-
     }
 
     /**
@@ -181,7 +178,7 @@ public class GUI {
      * Called every time the user modifies text in the search box.
      */
     private void handleSearch() {
-        String searchTerm = searchField.getText().trim();
+        String searchTerm = searchField.getText().trim().toLowerCase();
         String attribute = (String) searchCriteriaComboBox.getSelectedItem();
 
         // If user cleared the search box, show all jobs
@@ -189,7 +186,29 @@ public class GUI {
             updateTableWithJobs(jobs);
         } else {
             // Otherwise filter the currently loaded data
-            List<JobAdvert> filteredJobs = Search.filterJobs(jobs, attribute, searchTerm);
+            List<JobAdvert> filteredJobs = new ArrayList<>();
+            for (JobAdvert job : jobs) {
+                boolean matches = false;
+                switch (attribute) {
+                    case "Title":
+                        matches = job.getTitle().toLowerCase().contains(searchTerm);
+                        break;
+                    case "Company":
+                        matches = job.getCompany().toLowerCase().contains(searchTerm);
+                        break;
+                    case "Skills":
+                        for (String skill : job.getSkills()) {
+                            if (skill.toLowerCase().contains(searchTerm)) {
+                                matches = true;
+                                break;
+                            }
+                        }
+                        break;
+                }
+                if (matches) {
+                    filteredJobs.add(job);
+                }
+            }
             updateTableWithJobs(filteredJobs);
         }
     }
@@ -222,43 +241,14 @@ public class GUI {
             if (selectedRow != -1) {
                 JobAdvert jobToRemove = jobs.get(selectedRow);
                 jobs.remove(jobToRemove);
-                tableModel.removeRow(selectedRow);
+                updateTableWithJobs(jobs);
             }
         });
     }
 
-    public List<JobAdvert> getJobsFromTable() {
-        List<JobAdvert> currentJobs = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            int jobId = (int) tableModel.getValueAt(i, 0);
-            String title = (String) tableModel.getValueAt(i, 1);
-            String company = (String) tableModel.getValueAt(i, 2);
-            String skillsStr = (String) tableModel.getValueAt(i, 3);
-            List<String> skills = Arrays.stream(skillsStr.split(";"))
-                    .map(String::trim)
-                    .collect(Collectors.toList());
-            double latitude = Double.parseDouble(tableModel.getValueAt(i, 4).toString());
-            double longitude = Double.parseDouble(tableModel.getValueAt(i, 5).toString());
-            double salary = Double.parseDouble(tableModel.getValueAt(i, 6).toString());
-            String deadlineStr = tableModel.getValueAt(i, 7).toString();
-            Date deadline;
-
-            try {
-                deadline = sdf.parse(deadlineStr);
-            } catch (ParseException e) {
-                e.printStackTrace();
-                deadline = new Date(); // Fallback to current date if parsing fails
-            }
-
-            currentJobs.add(new JobAdvert(
-                    jobId, title, company, skills, latitude, longitude, salary, deadline
-            ));
-        }
-        return currentJobs;
+    private void updateTableWithJobs(List<JobAdvert> jobs) {
+        tableModel.setJobs(jobs);
     }
-
 
     public void setupDistanceButton(JFrame frame, double homeLatitude, double homeLongitude) {
         distanceButton.addActionListener(e -> {
@@ -272,5 +262,4 @@ public class GUI {
         System.out.println("Plotting graph with " + graph.vertexSet().size() + " vertices.");
         // Implement graph plotting logic here
     }
-
 }
