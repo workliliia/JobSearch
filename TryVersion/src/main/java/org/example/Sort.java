@@ -1,55 +1,54 @@
 package org.example;
-
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public class Sort {
 
-    /**
-     * Sorts a list of jobs based on the selected column.
-     *
-     * @param jobs       the list of jobs to sort
-     * @param sortColumn the name of the column to sort by (e.g. "Job ID", "Title", "Company", "Salary", or "Deadline")
-     * @return           a new List of JobAdvert objects, sorted according to the column
-     */
-    public static List<JobAdvert> sortJobs(List<JobAdvert> jobs, String sortColumn) {
-        // If no sort column is provided, just return the original list
-        if (sortColumn == null || sortColumn.isEmpty()) {
-            return jobs;
-        }
-
-        // Copy the list so we don't modify the original
-        List<JobAdvert> sortedList = new ArrayList<>(jobs);
-
-        switch (sortColumn) {
-            case "Job ID":
-                sortedList.sort(Comparator.comparingInt(JobAdvert::getJobId));
-                break;
-            case "Title":
-                sortedList.sort(Comparator.comparing(
-                        JobAdvert::getTitle,
-                        String.CASE_INSENSITIVE_ORDER
-                ));
-                break;
-            case "Company":
-                sortedList.sort(Comparator.comparing(
-                        JobAdvert::getCompany,
-                        String.CASE_INSENSITIVE_ORDER
-                ));
-                break;
-            case "Salary":
-                sortedList.sort(Comparator.comparingDouble(JobAdvert::getSalary));
-                break;
-            case "Deadline":
-                // Assuming getDeadline() returns a java.util.Date
-                sortedList.sort(Comparator.comparing(JobAdvert::getDeadline));
-                break;
-            default:
-                // Unrecognized column => do no sorting
-                break;
-        }
-
-        return sortedList;
+    // Swap function adapted for JobAdvert list
+    private static void swap(List<JobAdvert> jobs, int i, int j) {
+        JobAdvert temp = jobs.get(i);
+        jobs.set(i, jobs.get(j));
+        jobs.set(j, temp);
     }
+
+    // Partition function adapted for JobAdvert list and an attribute
+    private static int partition(List<JobAdvert> jobs, int low, int high, String attribute) {
+        JobAdvert pivot = jobs.get(high);
+        int i = low - 1;
+
+        for (int j = low; j < high; j++) {
+            if (compare(jobs.get(j), pivot, attribute) <= 0) {
+                i++;
+                swap(jobs, i, j);
+            }
+        }
+        swap(jobs, i + 1, high);
+        return i + 1;
+    }
+
+    // QuickSort function for JobAdvert list
+    public static void quickSort(List<JobAdvert> jobs, int low, int high, String attribute) {
+        if (low < high) {
+            int pi = partition(jobs, low, high, attribute);
+            quickSort(jobs, low, pi - 1, attribute);
+            quickSort(jobs, pi + 1, high, attribute);
+        }
+    }
+
+    private static int compare(JobAdvert job1, JobAdvert job2, String attribute) {
+        switch (attribute) {
+            case "Salary":
+                return Double.compare(job1.getSalary(), job2.getSalary());
+            case "Title":
+                return job1.getTitle().compareTo(job2.getTitle());
+            case "Job ID":
+                return Integer.compare(job1.getJobId(), job2.getJobId());
+            case "Company":
+                return job1.getCompany().compareTo(job2.getCompany());
+            case "Deadline":
+                return job1.getDeadline().compareTo(job2.getDeadline());
+            default:
+                throw new IllegalArgumentException("Unknown attribute for comparison");
+        }
+    }
+
 }
