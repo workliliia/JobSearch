@@ -118,12 +118,12 @@ public class GUI {
         // Search Button Listener (Optional)
         searchButton.addActionListener(e -> handleSearch());
 
-        // Sort Button Listener
         sortButton.addActionListener(e -> {
             String sortColumn = (String) columnDropdown.getSelectedItem();
-            List<JobAdvert> sortedJobs = Sort.sortJobs(jobs, sortColumn);
-            updateTableWithJobs(sortedJobs);
+            Sort.quickSort(jobs, 0, jobs.size() - 1, sortColumn);
+            updateTableWithJobs(jobs);
         });
+
     }
 
     /**
@@ -148,7 +148,7 @@ public class GUI {
                 Arrays.asList("JavaScript", "React", "Node.js"),
                 47.6062095,
                 -122.3320708,
-                140000.00,
+                100000.00,
                 sdf.parse("2024-11-30")
         );
 
