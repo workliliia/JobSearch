@@ -1,4 +1,5 @@
 package org.example;
+
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -7,13 +8,14 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
+
+import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
-import javax.swing.*;
 
 public class DistanceGraph {
 
-    public static void showDistanceGraph(JFrame frame, java.util.List<JobAdvert> jobs, double homeLat, double homeLon) {
+    public static void showDistanceGraph(java.util.List<JobAdvert> jobs, double homeLat, double homeLon) {
         XYSeriesCollection dataset = new XYSeriesCollection();
 
         // Home location series (for visibility as a distinct point)
@@ -23,8 +25,8 @@ public class DistanceGraph {
 
         // Adding each job as a new series with a line from home to the job location
         for (JobAdvert job : jobs) {
-            String distance = calculateDistance(homeLat, homeLon, job.getLatitude(), job.getLongitude());
-            String seriesLabel = job.getCompany() + " (" + distance + " km)"; // Use company name and distance
+            double distance = calculateDistance(homeLat, homeLon, job.getLatitude(), job.getLongitude());
+            String seriesLabel = job.getCompany() + " (" + String.format("%.2f", distance) + " km)"; // Use company name and distance
             XYSeries jobSeries = new XYSeries(seriesLabel);
             jobSeries.add(homeLon, homeLat); // Home coordinates
             jobSeries.add(job.getLongitude(), job.getLatitude()); // Job coordinates
@@ -56,17 +58,18 @@ public class DistanceGraph {
         plot.setRenderer(renderer);
 
         ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPreferredSize(new Dimension(600, 400));
-        JInternalFrame graphInternalFrame = new JInternalFrame("Distance Graph", true, true, true, true);
-        graphInternalFrame.getContentPane().add(chartPanel);
-        graphInternalFrame.pack();
-        graphInternalFrame.setVisible(true);
-        frame.add(graphInternalFrame); // Add this internal frame to the main GUI frame
+        chartPanel.setPreferredSize(new Dimension(750, 550)); // Set preferred size for the chart panel
+
+        // Create a new JFrame to display the chart
+        JFrame frame = new JFrame("Distance Graph");
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setContentPane(chartPanel);
         frame.pack();
+        frame.setLocationRelativeTo(null); // Center the frame on the screen
         frame.setVisible(true);
     }
 
-    private static String calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    public static double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
         double earthRadius = 6371; // Radius of the earth in km
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
@@ -74,7 +77,6 @@ public class DistanceGraph {
                 Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
                         Math.sin(dLon / 2) * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        double distance = earthRadius * c; // Distance in kilometers
-        return String.format("%.2f", distance); // Round to two decimal places
+        return earthRadius * c; // Distance in kilometers
     }
 }

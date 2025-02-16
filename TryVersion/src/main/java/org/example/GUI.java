@@ -26,6 +26,7 @@ public class GUI {
     private JobTableModel tableModel;
     private JComboBox<String> searchCriteriaComboBox;
     private JComboBox<String> columnDropdown;
+    private JTabbedPane tabbedPane;
 
     private final List<JobAdvert> jobs = new ArrayList<>();
     private final Search jobSearch = new Search();
@@ -37,6 +38,12 @@ public class GUI {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setMinimumSize(new Dimension(1200, 600)); // Set the minimum size of the frame
 
+        tabbedPane = new JTabbedPane();
+        // Set up the job table
+        setupJobTableTab();
+        frame.add(tabbedPane, BorderLayout.CENTER);
+        frame.pack();
+        frame.setVisible(true);
         // Main panel with BorderLayout
         JPanel mainPanel = new JPanel(new BorderLayout());
         frame.setContentPane(mainPanel);
@@ -51,19 +58,13 @@ public class GUI {
         // Job Table Internal Frame
         JInternalFrame tableInternalFrame = new JInternalFrame("Job Table", true, true, true, true);
         tableInternalFrame.setSize(600, 400);
-        tableInternalFrame.add(scrollPane);
+        tableInternalFrame.add(scrollPane); // Add the scrollPane (which contains the job table)
         tableInternalFrame.setVisible(true);
-
-        // Distance Graph Internal Frame
-        JInternalFrame graphInternalFrame = new JInternalFrame("Distance Graph", true, true, true, true);
-        graphInternalFrame.setSize(600, 400);
-        graphInternalFrame.setVisible(true);
 
         // Desktop pane for internal frames
         JDesktopPane desktopPane = new JDesktopPane();
-        desktopPane.add(tableInternalFrame);
-        desktopPane.add(graphInternalFrame);
-        mainPanel.add(desktopPane, BorderLayout.CENTER);
+        desktopPane.add(tableInternalFrame); // Add only the tableInternalFrame
+        mainPanel.add(desktopPane, BorderLayout.CENTER); // Add the desktopPane to the main panel
 
         // Buttons and Fields
         displayJobsButton = new JButton("Display Jobs");
@@ -164,6 +165,84 @@ public class GUI {
         });
     }
 
+    private void setupJobTableTab() {
+        tableModel = new JobTableModel(jobs, new String[]{
+                "Job ID", "Title", "Company", "Skills", "Latitude", "Longitude", "Salary", "Deadline"
+        });
+        jobTable = new JTable(tableModel);
+        scrollPane = new JScrollPane(jobTable);
+        tabbedPane.addTab("Job Table", scrollPane); // Add the job table as a tab
+        // Initialize the table model and table
+
+        // Job Table Internal Frame
+        JInternalFrame tableInternalFrame = new JInternalFrame("Job Table", true, true, true, true);
+        tableInternalFrame.setSize(1200, 400);
+        tableInternalFrame.add(scrollPane);
+        tableInternalFrame.setVisible(true);
+
+        // Buttons and Fields
+        displayJobsButton = new JButton("Display Jobs");
+        setHomeLocationButton = new JButton("Set Home Location");
+        addJobButton = new JButton("Add Job");
+        removeJobButton = new JButton("Remove Job");
+        distanceButton = new JButton("Calculate Distance");
+        searchField = new JTextField(15);
+        searchButton = new JButton("Search");
+        searchCriteriaComboBox = new JComboBox<>(new String[]{"Title", "Company", "Skills"});
+        sortButton = new JButton("Sort");
+        columnDropdown = new JComboBox<>(new String[]{"Job ID", "Title", "Company", "Salary", "Deadline"});
+
+
+        // Set colors for search components
+        searchField.setBackground(Color.YELLOW);
+        searchButton.setBackground(Color.YELLOW);
+        searchCriteriaComboBox.setBackground(Color.YELLOW);
+
+        // Set colors for sort components
+        sortButton.setBackground(Color.ORANGE);
+        columnDropdown.setBackground(Color.ORANGE);
+
+        // Input fields for home location
+        homeLatField = new JTextField(10);
+        homeLonField = new JTextField(10);
+
+        // Panel for buttons
+        JPanel buttonPanel = new JPanel(new GridLayout(3, 1)); // 3 rows, 1 column
+        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel row3 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel row4 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        row1.add(displayJobsButton);
+        row1.add(setHomeLocationButton);
+        row1.add(new JLabel("Home Latitude:"));
+        row1.add(homeLatField);
+        row1.add(new JLabel("Home Longitude:"));
+        row1.add(homeLonField);
+        row1.add(addJobButton);
+        row1.add(removeJobButton);
+
+        row2.add(sortButton);
+        row2.add(columnDropdown);
+
+
+        row3.add(searchField);
+        row3.add(searchButton);
+        row3.add(searchCriteriaComboBox);
+        JButton displayGraphButton = new JButton("Display Distance Graph");
+        displayGraphButton.addActionListener(e -> displayDistanceGraph()); // Ensure you have defined displayDistanceGraph() method
+        row4.add(displayGraphButton);
+        buttonPanel.add(row4); // Adding the new row to the panel
+
+// Ensure your GridLayout on buttonPanel accommodates the new row
+        buttonPanel.setLayout(new GridLayout(4, 1));
+
+        buttonPanel.add(row1);
+        buttonPanel.add(row2);
+        buttonPanel.add(row3);
+        buttonPanel.add(row4);
+    }
+
     private void addInitialJobs() throws ParseException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         JobAdvert job1 = new JobAdvert(1, "Software Engineer", "Google", Arrays.asList("Java", "Python", "Cloud"), 37.4219983, -122.084, 150000.00, sdf.parse("2024-12-31"));
@@ -255,7 +334,7 @@ public class GUI {
         return R * c; // Distance in kilometers
     }
     private void displayDistanceGraph() {
-        DistanceGraph.showDistanceGraph(frame, jobs, homeLatitude, homeLongitude); // Assuming such a method exists
+        DistanceGraph.showDistanceGraph(jobs, homeLatitude, homeLongitude); // Open the graph in a new window
     }
 
 }
