@@ -2,7 +2,9 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Simple model class to represent a Job Advertisement.
+ * JobAdvert is a simple data model representing a job advertisement.
+ * It includes fields for job ID, title, company, required skills,
+ * geographic coordinates, salary, and application deadline.
  */
 public class JobAdvert {
     private int jobId;
@@ -14,6 +16,7 @@ public class JobAdvert {
     private double salary;
     private Date deadline;
 
+    // Constructor to initialise all job attributes
     public JobAdvert(int jobId, String title, String company,
                      List<String> skills, double latitude,
                      double longitude, double salary, Date deadline) {
@@ -27,7 +30,8 @@ public class JobAdvert {
         this.deadline = deadline;
     }
 
-    // --- Getters and setters (optional) ---
+    // --- Getters to access field values ---
+
     public int getJobId() {
         return jobId;
     }
@@ -60,7 +64,8 @@ public class JobAdvert {
         return deadline;
     }
 
-    // --- Setters ---
+    // --- Setters to update field values ---
+
     public void setJobId(int jobId) {
         this.jobId = jobId;
     }
@@ -93,8 +98,7 @@ public class JobAdvert {
         this.deadline = deadline;
     }
 
-    // --- toString() for debugging ---
-
+    // Returns a string representation of the job advert (useful for debugging)
     @Override
     public String toString() {
         return "JobAdvert{" +

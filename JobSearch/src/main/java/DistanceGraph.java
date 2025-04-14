@@ -1,3 +1,4 @@
+// Imports for creating and rendering charts using JFreeChart
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -11,59 +12,76 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 
+/**
+ * DistanceGraph generates a scatter plot showing the home location and job locations,
+ * with lines connecting home to each job to visualise distances.
+ */
 public class DistanceGraph {
 
+    /**
+     * Displays a graph of distances between home and job locations.
+     *
+     * @param jobs     List of JobAdvert objects with job coordinates
+     * @param homeLat  Latitude of the user's home
+     * @param homeLon  Longitude of the user's home
+     */
     public static void showDistanceGraph(java.util.List<JobAdvert> jobs, double homeLat, double homeLon) {
+        // Dataset to hold all series (home + jobs)
         XYSeriesCollection dataset = new XYSeriesCollection();
 
-        // Home location series (for visibility as a distinct point)
+        // Home location as a separate series for visibility
         XYSeries homeSeries = new XYSeries("Home");
-        homeSeries.add(homeLon, homeLat); // Note: X-axis is longitude, Y-axis is latitude
+        homeSeries.add(homeLon, homeLat); // X = Longitude, Y = Latitude
         dataset.addSeries(homeSeries);
 
-        // Adding each job as a new series with a line from home to the job location
+        // Add a series for each job, connecting it to home
         for (JobAdvert job : jobs) {
             double distance = DistanceUtils.calculate(homeLat, homeLon, job.getLatitude(), job.getLongitude());
-            String seriesLabel = job.getCompany() + " (" + String.format("%.2f", distance) + " km)"; // Use company name and distance
+            String seriesLabel = job.getCompany() + " (" + String.format("%.2f", distance) + " km)";
             XYSeries jobSeries = new XYSeries(seriesLabel);
-            jobSeries.add(homeLon, homeLat); // Home coordinates
-            jobSeries.add(job.getLongitude(), job.getLatitude()); // Job coordinates
+            jobSeries.add(homeLon, homeLat); // Start at home
+            jobSeries.add(job.getLongitude(), job.getLatitude()); // End at job location
             dataset.addSeries(jobSeries);
         }
 
+        // Create scatter plot with the dataset
         JFreeChart chart = ChartFactory.createScatterPlot(
-                "Distance to Jobs from Home",
-                "Longitude", "Latitude",
-                dataset,
-                PlotOrientation.VERTICAL,
-                true, true, false);
+                "Distance to Jobs from Home",       // Chart title
+                "Longitude",                        // X-axis label
+                "Latitude",                         // Y-axis label
+                dataset,                            // Data
+                PlotOrientation.VERTICAL,           // Chart orientation
+                true, true, false                   // Legend, tooltips, URLs
+        );
 
+        // Configure plot and renderer for custom shapes and lines
         XYPlot plot = chart.getXYPlot();
         XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
 
-        // Set rendering for home point
-        renderer.setSeriesLinesVisible(0, false); // No line for the home series
-        renderer.setSeriesShapesVisible(0, true); // Visible shape for the home
-        renderer.setSeriesShape(0, new Ellipse2D.Double(-5, -5, 10, 10)); // Larger home location marker
+        // Configure home point (first series)
+        renderer.setSeriesLinesVisible(0, false); // No connecting line
+        renderer.setSeriesShapesVisible(0, true); // Show a shape
+        renderer.setSeriesShape(0, new Ellipse2D.Double(-5, -5, 10, 10)); // Circle for home
 
-        // Set rendering for job series
+        // Configure job points (remaining series)
         for (int i = 1; i < dataset.getSeriesCount(); i++) {
-            renderer.setSeriesLinesVisible(i, true); // Enable lines for job series
-            renderer.setSeriesShapesVisible(i, true); // Show shapes at job points
-            renderer.setSeriesShape(i, new Ellipse2D.Double(-8, -8, 16, 16)); // Larger job markers
+            renderer.setSeriesLinesVisible(i, true);  // Line from home to job
+            renderer.setSeriesShapesVisible(i, true); // Show shape at job
+            renderer.setSeriesShape(i, new Ellipse2D.Double(-8, -8, 16, 16)); // Larger shape
         }
 
-        plot.setRenderer(renderer);
+        plot.setRenderer(renderer); // Apply custom renderer to the plot
 
+        // Wrap chart in a panel with fixed size
         ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPreferredSize(new Dimension(750, 550)); // Set preferred size for the chart panel
+        chartPanel.setPreferredSize(new Dimension(750, 550));
 
-        // Create a new JFrame to display the chart
+        // Create and display the chart in a new window
         JFrame frame = new JFrame("Distance Graph");
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // Only close the graph window
         frame.setContentPane(chartPanel);
-        frame.pack();
-        frame.setLocationRelativeTo(null); // Center the frame on the screen
-        frame.setVisible(true);
+        frame.pack(); // Resize to fit content
+        frame.setLocationRelativeTo(null); // Center on screen
+        frame.setVisible(true); // Show the window
     }
 }

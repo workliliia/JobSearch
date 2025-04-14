@@ -10,75 +10,79 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.*;
 
+/**
+ * GUI class creates and manages the main window of the Job Advertisement Manager.
+ * It includes a job table, controls for managing job data, and features like search,
+ * sort, CSV handling, and graph visualisation.
+ */
 public class GUI {
-    private JFrame frame;
+    // Main components
+    private final JFrame frame;
     private JTable jobTable;
     private JobTableModel tableModel;
-    private ButtonPanelBuilder buttonBuilder;
+    private final ButtonPanelBuilder buttonBuilder;
     private List<JobAdvert> allJobs = new ArrayList<>();
 
+    // Buttons and fields for UI interaction
+    private final JButton searchButton;
+    private final JButton setHomeLocationButton;
+    private final JButton addJobButton;
+    private final JButton removeJobButton;
+    private final JButton distanceButton;
+    private final JButton sortButton;
+    private final JButton loadCSVButton;
+    private final JButton saveCSVButton;
+    private final JTextField searchField;
+    private final JTextField homeLatField;
+    private final JTextField homeLonField;
+    private final JComboBox<String> searchCriteriaComboBox;
+    private final JComboBox<String> columnDropdown;
 
-    // Buttons and fields
-    private JButton searchButton;
-    private JButton setHomeLocationButton;
-    private JButton addJobButton;
-    private JButton removeJobButton;
-    private JButton distanceButton;
-    private JButton sortButton;
-    // Create buttons for loading and saving job data
-    private JButton loadCSVButton;
-    private JButton saveCSVButton;
-
-
-    private JTextField searchField;
-    private JTextField homeLatField, homeLonField;
-    private JComboBox<String> searchCriteriaComboBox;
-    private JComboBox<String> columnDropdown;
-
-    // Data & Search
+    // Logic & data handling
     private final Search jobSearch = new Search();
+    private static final String DATE_FORMAT = "dd/MM/yyyy";
     private double homeLatitude = 0.0;
     private double homeLongitude = 0.0;
 
     public GUI() {
-        // Set up the main frame
+        // Set up the main window
         frame = new JFrame("Job Advertisements");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setMinimumSize(new Dimension(1200, 700));
 
-        // Main panel with BorderLayout
+        // Create and set the main layout panel
         JPanel mainPanel = new JPanel(new BorderLayout());
         frame.setContentPane(mainPanel);
 
-        // Add the job table panel directly to the main panel
+        // Job table panel in the center
         mainPanel.add(createJobTablePanel(), BorderLayout.CENTER);
 
+        // Build button panel and help button
         buttonBuilder = new ButtonPanelBuilder();
         JPanel buttonPanel = buttonBuilder.buildButtonPanel();
         JButton helpButton = buttonBuilder.getButton("Help");
 
-// Wrap Help button in a right-aligned panel
+        // Help button in top-right corner
         JPanel helpPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         helpPanel.add(helpButton);
-
-// Add help button above the table
         mainPanel.add(helpPanel, BorderLayout.NORTH);
-        mainPanel.add(createJobTablePanel(), BorderLayout.CENTER);
+
+        // Add table and buttons
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-
-        // Finalize frame setup
+        // Final setup
         frame.pack();
-        frame.setLocationRelativeTo(null); // center on screen
+        frame.setLocationRelativeTo(null);
         frame.setVisible(true);
 
-        // Add initial jobs
+        // Add sample jobs to display
         try {
             addInitialJobs();
-//            testJobTableModelWithFakeData(10);
         } catch (ParseException e) {
             e.printStackTrace();
         }
+
+        // Link buttons and fields from builder
         searchButton = buttonBuilder.getButton("Search");
         setHomeLocationButton = buttonBuilder.getButton("Set Home Location");
         addJobButton = buttonBuilder.getButton("Add Job");
@@ -87,6 +91,7 @@ public class GUI {
         sortButton = buttonBuilder.getButton("Sort");
         loadCSVButton = buttonBuilder.getButton("Load CSV");
         saveCSVButton = buttonBuilder.getButton("Save CSV");
+
         if (helpButton != null) {
             helpButton.addActionListener(e -> showHelpPopup());
         }
@@ -97,12 +102,11 @@ public class GUI {
         searchCriteriaComboBox = buttonBuilder.getSearchCriteriaComboBox();
         columnDropdown = buttonBuilder.getColumnDropdown();
 
-        // Initialize all listeners
-        initListeners();
+        initListeners(); // Setup all event listeners
     }
 
     /**
-     * Creates the job table panel.
+     * Creates and returns the job table panel with padding and scroll bar.
      */
     private JPanel createJobTablePanel() {
         tableModel = new JobTableModel(new ArrayList<>(), new String[]{
@@ -110,107 +114,87 @@ public class GUI {
         });
         jobTable = new JTable(tableModel);
 
-        // Set table cell borders with light color
+        // Light grey border for table cells
         jobTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                label.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));  // Light grey border
+                label.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
                 return label;
             }
         });
 
-        // Make header font bold
+        // Bold font for table headers
         jobTable.getTableHeader().setFont(new Font("Dialog", Font.BOLD, 12));
-
         JScrollPane scrollPane = new JScrollPane(jobTable);
 
-        // Create a panel with padding around the table
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // Add 20px padding on all sides
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         panel.add(scrollPane, BorderLayout.CENTER);
 
         return panel;
     }
+
     /**
-     * Registers all event listeners.
+     * Sets up event listeners for all interactive buttons and fields.
      */
     private void initListeners() {
+        // Set home location and check for duplicates
         setHomeLocationButton.addActionListener(e -> {
             try {
                 double enteredLat = Double.parseDouble(homeLatField.getText());
                 double enteredLon = Double.parseDouble(homeLonField.getText());
 
-                // Check for conflict with existing job locations
                 for (JobAdvert job : tableModel.getJobs()) {
                     if (Double.compare(job.getLatitude(), enteredLat) == 0 &&
                             Double.compare(job.getLongitude(), enteredLon) == 0) {
-                        JOptionPane.showMessageDialog(
-                                frame,
+                        JOptionPane.showMessageDialog(frame,
                                 "The entered home location matches an existing job at \"" + job.getTitle() + "\" at " + job.getCompany() + ".\nPlease choose a different location.",
-                                "Duplicate Location",
-                                JOptionPane.WARNING_MESSAGE,
-                                null
-                        );
+                                "Duplicate Location", JOptionPane.WARNING_MESSAGE);
                         return;
                     }
                 }
 
                 homeLatitude = enteredLat;
                 homeLongitude = enteredLon;
-                JOptionPane.showMessageDialog(
-                        frame,
+
+                JOptionPane.showMessageDialog(frame,
                         "Home location set to: " + homeLatitude + ", " + homeLongitude,
-                        "Location Set",
-                        JOptionPane.INFORMATION_MESSAGE,
-                        null
-                );
+                        "Location Set", JOptionPane.INFORMATION_MESSAGE);
 
             } catch (NumberFormatException nfe) {
-                JOptionPane.showMessageDialog(
-                        frame,
-                        "❗ Please enter valid numbers for latitude and longitude.",
-                        "❗ Invalid Input",
-                        JOptionPane.ERROR_MESSAGE,
-                        null
-                );
+                JOptionPane.showMessageDialog(frame,
+                        "Please enter valid numbers for latitude and longitude.",
+                        "Invalid Input", JOptionPane.WARNING_MESSAGE);
             }
         });
 
-
+        // Add sample job (can be replaced with user input in future)
         addJobButton.addActionListener(e -> {
             try {
-                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-                JobAdvert newJob = new JobAdvert(
-                        0, // Placeholder; the model will set the correct ID
-                        "Example Role",
-                        "Example Company",
-                        Arrays.asList("Java", "Spring", "SQL"),
-                        37.7749, -122.4194,
-                        105000.00,
-                        sdf.parse("22/01/2026")
-                );
+                SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
+                JobAdvert newJob = new JobAdvert(0, "Example Role", "Example Company",
+                        Arrays.asList("Required skills for the job"),
+                        0, 0, 0, sdf.parse("01/01/2025"));
 
                 tableModel.addJob(newJob);
                 allJobs = new ArrayList<>(tableModel.getJobs());
                 jobSearch.insert(newJob);
+                MetricsServer.jobsAdded.inc(); // metric tracker (optional)
 
-                MetricsServer.jobsAdded.inc();
             } catch (ParseException ex) {
                 ex.printStackTrace();
             }
         });
 
+        // Remove selected job
         removeJobButton.addActionListener(e -> {
             int selectedRow = jobTable.getSelectedRow();
             if (selectedRow != -1) {
-                int confirm = JOptionPane.showConfirmDialog(
-                        frame,
+                int confirm = JOptionPane.showConfirmDialog(frame,
                         "Are you sure you want to delete this job?",
-                        "Confirm Deletion",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE
-                );
+                        "Confirm Deletion", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
                 if (confirm == JOptionPane.YES_OPTION) {
                     JobAdvert jobToRemove = tableModel.getJobs().get(selectedRow);
                     tableModel.removeJob(selectedRow);
@@ -218,52 +202,51 @@ public class GUI {
                     allJobs.remove(jobToRemove);
                     updateTableWithJobs(tableModel.getJobs());
                 }
-            } else {
-                JOptionPane.showMessageDialog(frame, "Please select a job to remove.");
-            }
+            } JOptionPane.showMessageDialog(frame,
+                    "Please select a job to remove.",
+                    "Warning",
+                    JOptionPane.WARNING_MESSAGE);
+
         });
 
-
-
+        // Calculate distance to selected job
         distanceButton.addActionListener(e -> {
             int selectedRow = jobTable.getSelectedRow();
             if (selectedRow != -1) {
                 double jobLat = (double) jobTable.getValueAt(selectedRow, 4);
                 double jobLon = (double) jobTable.getValueAt(selectedRow, 5);
                 double distance = DistanceUtils.calculate(homeLatitude, homeLongitude, jobLat, jobLon);
-                double roundedDistance = Math.round(distance * 100.0) / 100.0;
+                double rounded = Math.round(distance * 100.0) / 100.0;
+
                 JOptionPane.showMessageDialog(frame,
-                        "Distance to home: " + roundedDistance + " km",
-                        "Distance Calculation",
-                        JOptionPane.INFORMATION_MESSAGE);
+                        "Distance to home: " + rounded + " km",
+                        "Distance Calculation", JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(frame,
                         "No job selected. Please select a job to calculate distance.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                        "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
-        // Search
+
+        // Search jobs on button click or Enter key
         ActionListener searchAction = e -> handleSearch();
         searchButton.addActionListener(searchAction);
-        searchField.addActionListener(searchAction); // Trigger search on Enter key
+        searchField.addActionListener(searchAction);
 
-// Sort
+        // Sort job list by selected column
         sortButton.addActionListener(e -> handleSort());
 
-// Load CSV
+        // Load job list from CSV
         loadCSVButton.addActionListener(e -> loadJobTableFromCSV());
 
-// Save CSV
+        // Save job list to CSV
         saveCSVButton.addActionListener(e -> saveJobTableToCSV());
 
-// Display Graph
+        // Show distance graph
         JButton displayGraphButton = buttonBuilder.getButton("Display Graph");
         if (displayGraphButton != null) {
             displayGraphButton.addActionListener(e -> displayDistanceGraph());
         }
-
-
     }
     private void showHelpPopup() {
         String helpMessage = """
@@ -321,9 +304,11 @@ public class GUI {
         JOptionPane.showMessageDialog(frame, helpMessage, "How to Use This App", JOptionPane.INFORMATION_MESSAGE);
     }
 
-
+    // Adds a predefined list of job adverts to the system at startup.
     private void addInitialJobs() throws ParseException {
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
+
+        // Create sample job adverts with realistic roles and data
         JobAdvert job1 = new JobAdvert(1, "AI Research Engineer", "Quantex Labs",
                 Arrays.asList("Python", "TensorFlow", "Deep Learning"),
                 37.774929, -122.419416, 145000.00, sdf.parse("20/05/2025"));
@@ -344,6 +329,7 @@ public class GUI {
                 Arrays.asList("Network Security", "SIEM", "Python"),
                 48.856613, 2.352222, 110000.00, sdf.parse("28/05/2025"));
 
+        // Insert and store them
         List<JobAdvert> initialJobs = List.of(job1, job2, job3, job4, job5);
         jobSearch.insertJobs(initialJobs);
         tableModel.setJobs(initialJobs);
@@ -351,6 +337,7 @@ public class GUI {
 
     }
 
+    // Filters the job list based on a keyword and selected search criteria.
     private void handleSearch() {
         String searchTerm = searchField.getText().trim();
         String attribute = (String) searchCriteriaComboBox.getSelectedItem();
@@ -360,6 +347,7 @@ public class GUI {
             return;
         }
 
+        // Get matching jobs
         List<JobAdvert> results = jobSearch.getMatchingJobs(attribute, searchTerm);
 
         if (results.isEmpty()) {
@@ -373,6 +361,7 @@ public class GUI {
         }
     }
 
+    // Sorts job adverts in the table based on the selected column.
     private void handleSort() {
         String sortColumn = (String) columnDropdown.getSelectedItem();
         List<JobAdvert> sortedJobs = new ArrayList<>(tableModel.getJobs());
@@ -381,11 +370,13 @@ public class GUI {
     }
 
 
+    // Updates the job table and internal list with a new set of jobs.
     private void updateTableWithJobs(List<JobAdvert> jobs) {
         tableModel.setJobs(jobs);
         allJobs = new ArrayList<>(jobs);
     }
 
+    // Displays a graphical visualisation of distances from home to each job.
     private void displayDistanceGraph() {
         if (homeLatitude == 0.0 && homeLongitude == 0.0) {
             JOptionPane.showMessageDialog(frame,
@@ -398,6 +389,7 @@ public class GUI {
         DistanceGraph.showDistanceGraph(tableModel.getJobs(), homeLatitude, homeLongitude);
     }
 
+    // Saves the current job table to a CSV file selected by the user.
     private void saveJobTableToCSV() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Save Job Table to CSV");
@@ -414,7 +406,7 @@ public class GUI {
         }
     }
 
-
+    // Loads job data from a CSV file selected by the user and populates the table.
     private void loadJobTableFromCSV() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Load Job Table from CSV");
@@ -433,11 +425,13 @@ public class GUI {
             }
         }
     }
+
+    // Generates a large number of fake jobs and loads them into the table for testing performance.
     public void testJobTableModelWithFakeData(int count) {
         System.out.println("Generating " + count + " fake jobs...");
 
         List<JobAdvert> jobs = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
 
         try {
             for (int i = 0; i < count; i++) {
